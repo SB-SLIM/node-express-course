@@ -11,8 +11,20 @@ const errorHandlerMiddleware = (err, req, res, next) => {
     msg: err.msg || "Something went wrong try again later",
   };
 
-  if (err instanceof CustomAPIError) {
-    return res.status(err.statusCode).json({ msg: err.message });
+  // if (err instanceof CustomAPIError) {
+  //   return res.status(err.statusCode).json({ msg: err.message });
+  // }
+
+  if (err.name === "ValidationError") {
+    customError.msg = Object.values(err.errors)
+      .map((item) => item.message)
+      .join(", ");
+    customError.statusCode = StatusCodes.BAD_REQUEST;
+  }
+
+  if (err.name === "CastError") {
+    customError.msg = `No item found with id: ${err.value}`;
+    customError.statusCode = StatusCodes.NOT_FOUND;
   }
 
   if (err.code && err.code === 11000) {
@@ -22,9 +34,7 @@ const errorHandlerMiddleware = (err, req, res, next) => {
     customError.statusCode = StatusCodes.BAD_REQUEST;
   }
 
-  return res
-    .status(customError.statusCode)
-    .json({ error: { message: customError.msg } });
+  return res.status(customError.statusCode).json({ error: { message: customError.msg} });
 };
 
 module.exports = errorHandlerMiddleware;
